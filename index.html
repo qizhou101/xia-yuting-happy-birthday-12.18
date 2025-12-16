@@ -21,7 +21,7 @@ body,html{width:100%;height:100%;overflow:hidden;font-family:'ZCOOL XiaoWei',ser
 canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1}
 .container{position:absolute;width:100%;height:100%;z-index:10;pointer-events:none}
 
-/* 首页Q弹 - 浅色风格 */
+/* 首页Q弹 */
 @keyframes bouncyPop{0%{opacity:0;transform:scale(.3) translateY(20px)}50%{opacity:.8;transform:scale(1.1) translateY(-10px)}70%{transform:scale(.95) translateY(5px)}100%{opacity:1;transform:scale(1) translateY(0)}}
 .glass-box{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);box-shadow:0 20px 50px rgba(0,0,0,0.3),inset 0 0 20px rgba(255,255,255,.05);padding:40px 30px;border-radius:20px;width:85%;max-width:420px;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(10px);pointer-events:auto}
 .glass-box h2,.glass-box p,.glass-box .input-wrapper,.glass-box .btn{opacity:0;animation:bouncyPop .8s cubic-bezier(.68,-.55,.265,1.55) forwards}
@@ -168,48 +168,88 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
         const bgmBirthday=get('bgmBirthday');
         const bgmFlower=get('bgmFlower');
 
-        // 验证与启动
+        // 1. 代码生成雨声 (白噪音+低通滤波)
+        let rainCtx, rainSource, rainGain;
+        function startRainSound() {
+            if(!window.AudioContext && !window.webkitAudioContext) return;
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!rainCtx) rainCtx = new AudioContext();
+            
+            const bufferSize = 2 * rainCtx.sampleRate;
+            const buffer = rainCtx.createBuffer(1, bufferSize, rainCtx.sampleRate);
+            const output = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; }
+
+            rainSource = rainCtx.createBufferSource();
+            rainSource.buffer = buffer;
+            rainSource.loop = true;
+
+            const filter = rainCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 800; 
+
+            rainGain = rainCtx.createGain();
+            rainGain.gain.value = 0.15; 
+
+            rainSource.connect(filter);
+            filter.connect(rainGain);
+            rainGain.connect(rainCtx.destination);
+            rainSource.start();
+        }
+
+        function stopRainSound() {
+            if(rainGain) {
+                rainGain.gain.exponentialRampToValueAtTime(0.001, rainCtx.currentTime + 1);
+                setTimeout(() => { if(rainSource) rainSource.stop(); }, 1000);
+            }
+        }
+
+        // 任意点击触发雨声
+        document.body.addEventListener('click', function playRain() {
+            if (!rainCtx && get('stage1').style.display !== 'none') {
+                startRainSound();
+            }
+        }, { once: true });
+
+        // 2. 流程控制
         function verify(){ 
             if(get('password').value==='1218'){ 
                 get('stage1').style.opacity=0; 
-                // 尝试播放音频（如果浏览器允许）
-                bgmBirthday.play().catch(e=>{console.log("Auto-play blocked, waiting for interaction")});
                 
-                setTimeout(()=>{ 
-                    get('stage1').style.display='none'; 
-                    startCountdown(); 
-                },800); 
+                // 关键一步：停止雨声，同时“唤醒”后面的音乐 (播放后立刻暂停)
+                stopRainSound();
+                bgmBirthday.play(); // 立即播放生日歌
+                bgmFlower.play();   // 唤醒一路生花
+                bgmFlower.pause();  // 立即暂停，等待时机
+                
+                setTimeout(()=>{ get('stage1').style.display='none'; startCountdown(); },800); 
             } else { alert('口令错误 (生日:1218)'); get('password').value=''; } 
         }
-
-        // 倒计时
         function startCountdown(){ 
             const el=get('countdown'); let num=3; el.classList.add('show'); el.innerText=num; setTimeout(()=>el.classList.remove('beat'),200); 
             const t=setInterval(()=>{ num--; if(num>0){ el.innerText=num; el.classList.add('beat'); setTimeout(()=>el.classList.remove('beat'),200); } else { clearInterval(t); el.classList.remove('show'); setTimeout(showCake,800); } },1000); 
         }
         
-        // 蛋糕流程
         function showCake(){ 
             get('stage3').classList.add('show'); 
-            
-            // 7秒许愿时间
+            // 7秒许愿
             setTimeout(()=>{ 
                 get('cakeHint').innerText='呼~ (愿望已许下)'; 
                 document.querySelectorAll('.flame').forEach(f=>f.classList.add('out')); 
                 
-                // 蜡烛熄灭后：背景换流星，放纸屑
+                // 吹灭后：生日歌继续，背景换，纸屑起
                 setTimeout(()=>{ 
                     animationMode='meteor'; initMeteors();
                     launchConfettiRain();
                     
-                    // 蛋糕停留 5 秒后消失
+                    // 蛋糕停留 5 秒后消失 (此时切歌)
                     setTimeout(()=>{
                         get('stage3').style.opacity=0; 
                         
                         // 蛋糕完全消失时刻：切歌 + 进结尾
                         setTimeout(()=>{ 
                             bgmBirthday.pause(); // 停生日歌
-                            bgmFlower.play();    // 放一路生花
+                            bgmFlower.play();    // 放一路生花 (之前唤醒过，现在可以直接放)
                             
                             get('stage3').style.display='none'; 
                             showFinalStage(); 
