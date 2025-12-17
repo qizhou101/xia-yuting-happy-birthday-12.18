@@ -142,6 +142,7 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
 </style>
 </head>
 <body>
+    <audio id="bgmRain" src="雨的声音.mp3" preload="auto" loop></audio>
     <audio id="bgmBirthday" src="生日快乐.mp3" preload="auto"></audio>
     <audio id="bgmFlower" src="一路生花.mp3" preload="auto" loop></audio>
 
@@ -201,95 +202,38 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
     <script>
         function get(id){return document.getElementById(id);}
         let animationMode='rain'; 
+        const bgmRain=get('bgmRain');
         const bgmBirthday=get('bgmBirthday');
         const bgmFlower=get('bgmFlower');
-
-        // === 1. ASMR级 立体声雨声生成 (Pink Noise + Stereo + Filters) ===
-        let rainCtx, rainGain;
-        let rainUnlocked = false;
-
-        function initRain() {
-            if(rainUnlocked) return;
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
-            rainCtx = new AudioContext();
-            
-            // 创建立体声 buffer (2个声道)
-            const bufferSize = 2 * rainCtx.sampleRate; 
-            const buffer = rainCtx.createBuffer(2, bufferSize, rainCtx.sampleRate);
-            
-            // 为每个声道生成独立的粉红噪音 (Pink Noise Algorithm)
-            for (let channel = 0; channel < 2; channel++) {
-                let output = buffer.getChannelData(channel);
-                let b0=0, b1=0, b2=0, b3=0, b4=0, b5=0, b6=0;
-                for (let i = 0; i < bufferSize; i++) {
-                    let white = Math.random() * 2 - 1;
-                    b0 = 0.99886 * b0 + white * 0.0555179;
-                    b1 = 0.99332 * b1 + white * 0.0750759;
-                    b2 = 0.96900 * b2 + white * 0.1538520;
-                    b3 = 0.86650 * b3 + white * 0.3104856;
-                    b4 = 0.55000 * b4 + white * 0.5329522;
-                    b5 = -0.7616 * b5 - white * 0.0168980;
-                    output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-                    output[i] *= 0.11; 
-                    b6 = white * 0.115926;
-                }
-            }
-
-            let rainSource = rainCtx.createBufferSource();
-            rainSource.buffer = buffer;
-            rainSource.loop = true;
-
-            // 滤波器链：HighShelf(去刺耳高频) -> LowPass(模拟沉闷感)
-            const highShelf = rainCtx.createBiquadFilter();
-            highShelf.type = 'highshelf';
-            highShelf.frequency.value = 3000;
-            highShelf.gain.value = -10; // 衰减高频
-
-            const lowPass = rainCtx.createBiquadFilter();
-            lowPass.type = 'lowpass';
-            lowPass.frequency.value = 900; 
-
-            rainGain = rainCtx.createGain();
-            rainGain.gain.value = 0.3; // 舒适音量
-
-            rainSource.connect(highShelf);
-            highShelf.connect(lowPass);
-            lowPass.connect(rainGain);
-            rainGain.connect(rainCtx.destination);
-            rainSource.start();
-            
-            rainUnlocked = true;
-            
-            // 绑定停止函数到全局
-            window.globalStopRain = function() {
-                if(rainGain) rainGain.gain.exponentialRampToValueAtTime(0.001, rainCtx.currentTime + 1.5);
-                setTimeout(() => { if(rainSource) rainSource.stop(); }, 1500);
-            };
-        }
 
         function safePlay(audio) { if(audio) { audio.play().catch(e => console.log("Play failed:", e)); } }
         function safePause(audio) { if(audio) { audio.pause(); } }
 
-        // === 2. 强力解锁逻辑 ===
-        function globalUnlock() {
-            if (!rainUnlocked && get('stage1').style.display !== 'none') { initRain(); }
-            if(bgmBirthday.paused) { bgmBirthday.play().then(() => bgmBirthday.pause()).catch(()=>{}); }
-            if(bgmFlower.paused) { bgmFlower.play().then(() => bgmFlower.pause()).catch(()=>{}); }
+        // === 核心修复：多重事件监听，确保触摸必有声 ===
+        function enableSound() {
+            // A. 尝试播放雨声 (如果还没播)
+            if (bgmRain.paused && get('stage1').style.display !== 'none') { 
+                safePlay(bgmRain); 
+            }
+            // B. 预加载其他音频 (静音播放0.1秒)
+            if(bgmBirthday.paused) { bgmBirthday.play().then(() => { if(get('stage1').style.display !== 'none') bgmBirthday.pause(); }).catch(()=>{}); }
+            if(bgmFlower.paused) { bgmFlower.play().then(() => { if(get('stage1').style.display !== 'none') bgmFlower.pause(); }).catch(()=>{}); }
         }
 
-        document.body.addEventListener('touchstart', globalUnlock, { passive: true });
-        document.body.addEventListener('click', globalUnlock);
-        document.getElementById('password').addEventListener('focus', globalUnlock);
+        // 绑定到所有可能的交互事件
+        document.body.addEventListener('click', enableSound);
+        document.body.addEventListener('touchstart', enableSound, { passive: true }); // 手机端关键
+        document.getElementById('password').addEventListener('focus', enableSound); // 输入框关键
 
-        // === 3. 流程控制 ===
         function verify(){ 
             if(get('password').value==='1218'){ 
                 get('stage1').style.opacity=0; 
+                safePause(bgmRain);
                 
-                // 停止雨声
-                if(window.globalStopRain) window.globalStopRain();
-                
+                // 确保生日歌已准备好
+                bgmBirthday.muted=true; safePlay(bgmBirthday);
+                setTimeout(() => { bgmBirthday.pause(); bgmBirthday.muted=false; }, 50);
+
                 setTimeout(()=>{ get('stage1').style.display='none'; startCountdown(); },800); 
             } else { alert('口令错误 (生日:1218)'); get('password').value=''; } 
         }
