@@ -39,7 +39,7 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
 .countdown.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .countdown.beat{transform:translate(-50%,-50%) scale(1.2)}
 
-/* 蛋糕舞台 (保持之前缩放适配) */
+/* 蛋糕舞台 */
 .cake-stage{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%) scale(1.25);opacity:0;display:none;transition:opacity 1.2s;width:100%;flex-direction:column;align-items:center;justify-content:center;z-index:50}
 .cake-stage.show{opacity:1;display:flex}
 .cake-stage h1{color:#fff;margin-bottom:130px;font-weight:900;letter-spacing:6px;font-size:60px;text-shadow:0 0 30px rgba(255,255,255,.6);white-space:nowrap}
@@ -80,11 +80,11 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
 #final-stage-container.show{display:block}
 #danmaku-container{position:absolute;top:0;left:0;width:100%;height:100%;z-index:20;overflow:hidden;pointer-events:none}
 
-/* 区域3：照片墙 (固定在屏幕底部 45%) */
+/* 区域3：照片墙 */
 #photo-wall{
     position:absolute;
     bottom:0; left:0; width:100%; 
-    height:45%; /* 严格限制高度 */
+    height:45%; 
     padding:10px;
     box-sizing:border-box;
     display:flex; justify-content:center; align-items:center;
@@ -93,7 +93,6 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
 
 .photo-grid{
     display:grid;
-    /* 保持4列2行 */
     grid-template-columns:repeat(4,1fr);
     grid-template-rows:repeat(2,1fr);
     gap:10px;
@@ -106,10 +105,10 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
 .photo-frame.show{animation:photoEntrance 1.5s cubic-bezier(.19,1,.22,1) forwards}
 @keyframes photoEntrance{0%{opacity:0;transform:scale(0);z-index:10}50%{opacity:1;transform:scale(1.1);z-index:100}100%{opacity:1;transform:scale(1);z-index:1}}
 
-/* 区域2：文字 (中部，Top 40%) */
+/* 区域2：文字 */
 .final-text-block{
     position:absolute;
-    top: 40%; /* 位于屏幕 40% 处，给上面留位置 */
+    top: 40%;
     left:50%; transform:translate(-50%,-50%);
     text-align:center; z-index:99999;
     opacity:0; width:95%;
@@ -120,7 +119,7 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
 .main-title{font-size:48px;color:#ffd700;margin-bottom:15px;font-weight:900;letter-spacing:2px;line-height:1.2}
 .sub-title{font-size:24px;color:#fff;letter-spacing:2px;font-weight:bold}
 
-/* 区域1：弹幕 (在JS里控制高度) */
+/* 区域1：弹幕 */
 .bubble{position:absolute;padding:6px 12px;background:hsl(var(--h),70%,95%,.9);border-radius:20px;font-size:13px;color:#333;box-shadow:0 2px 5px rgba(0,0,0,.2);opacity:0;white-space:nowrap;font-weight:bold;pointer-events:none}
 .bubble.left-in{animation:flyRight 2s cubic-bezier(.34,1.56,.64,1) forwards}
 .bubble.right-in{animation:flyLeft 2s cubic-bezier(.34,1.56,.64,1) forwards}
@@ -129,22 +128,15 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
 
 /* === 移动端特别适配 === */
 @media (max-width:768px){
-    /* 蛋糕缩小 */
     .cake-stage{transform:translate(-50%,-50%) scale(0.6); width:100%}
     .cake-stage h1{font-size:42px; margin-bottom:90px}
     .cake-text{margin-top:50px}
-
-    /* 首页 */
     .glass-box{width:90%; padding:30px 20px;}
-
-    /* 结尾布局重置 */
-    .final-text-block{ top: 42%; } /* 文字稍微下移一点点 */
+    .final-text-block{ top: 42%; }
     .main-title{font-size:36px}
     .sub-title{font-size:18px}
-    
-    /* 照片墙：绝对底部，不占上面空间 */
     #photo-wall{ height:40%; bottom: 20px; padding: 0 10px; }
-    .photo-grid{ gap: 5px; } /* 间距紧凑 */
+    .photo-grid{ gap: 5px; } 
     .photo-frame{ border-width: 2px; padding: 2px; }
 }
 </style>
@@ -217,9 +209,13 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
         function safePlay(audio) { if(audio) { audio.play().catch(e => console.log("Play failed:", e)); } }
         function safePause(audio) { if(audio) { audio.pause(); } }
 
-        document.body.addEventListener('click', function() {
+        // 核心修复：多重事件监听，确保触摸必有声
+        function enableSound() {
             if (bgmRain.paused && get('stage1').style.display !== 'none') { safePlay(bgmRain); }
-        }, { once: true });
+        }
+        document.body.addEventListener('click', enableSound);
+        document.body.addEventListener('touchstart', enableSound); // 手机端关键
+        document.getElementById('password').addEventListener('focus', enableSound); // 输入框关键
 
         function verify(){ 
             if(get('password').value==='1218'){ 
@@ -276,12 +272,10 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
             const danmakuContainer = get('danmaku-container');
             const frames = document.querySelectorAll('.photo-frame');
             
-            // 弹幕位置控制：严格在顶部 0-35%
             wishes.forEach((text, i) => {
                 const bubble = document.createElement('div'); bubble.className = 'bubble'; bubble.innerText = text;
                 const hue = Math.floor(Math.random() * 360); bubble.style.setProperty('--h', hue);
                 
-                // 强制只在屏幕上方 0-35% 的高度生成
                 const top = Math.random() * 35; 
                 const left = Math.random() * 90 + 5;
 
@@ -289,11 +283,9 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
                 bubble.style.left = left + '%';
                 bubble.classList.add(Math.random() > 0.5 ? 'left-in' : 'right-in');
                 
-                // 慢节奏：1.5秒一个
                 setTimeout(() => { danmakuContainer.appendChild(bubble); }, i * 1500 + 1000);
             });
 
-            // 照片节奏：1.5秒一张
             frames.forEach((frame, i) => { setTimeout(() => { frame.classList.add('show'); }, i * 1500 + 1000); });
 
             setTimeout(() => { 
