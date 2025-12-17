@@ -39,7 +39,7 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
 .countdown.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .countdown.beat{transform:translate(-50%,-50%) scale(1.2)}
 
-/* 蛋糕舞台 (默认电脑布局) */
+/* 蛋糕舞台 (保持之前缩放适配) */
 .cake-stage{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%) scale(1.25);opacity:0;display:none;transition:opacity 1.2s;width:100%;flex-direction:column;align-items:center;justify-content:center;z-index:50}
 .cake-stage.show{opacity:1;display:flex}
 .cake-stage h1{color:#fff;margin-bottom:130px;font-weight:900;letter-spacing:6px;font-size:60px;text-shadow:0 0 30px rgba(255,255,255,.6);white-space:nowrap}
@@ -75,16 +75,17 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
 @keyframes flicker{0%{transform:translateX(-50%) scale(1) rotate(-2deg);opacity:1}100%{transform:translateX(-50%) scale(1.1) rotate(2deg);opacity:.9}}
 .pos-l1{bottom:85px;z-index:20}.pos-l2{bottom:165px;z-index:20}.pos-l3{bottom:235px;z-index:20}.pos-l4{bottom:295px;z-index:20}.pos-l5{bottom:350px;z-index:20;height:60px}
 
-/* === 结尾布局核心 (分层控制) === */
+/* === 结尾布局核心 (绝对分层) === */
 #final-stage-container{position:absolute;top:0;left:0;width:100%;height:100%;display:none;pointer-events:none;z-index:50}
 #final-stage-container.show{display:block}
 #danmaku-container{position:absolute;top:0;left:0;width:100%;height:100%;z-index:20;overflow:hidden;pointer-events:none}
 
-/* 区域3：照片墙 (下半部分 50%) */
+/* 区域3：照片墙 (固定在屏幕底部 45%) */
 #photo-wall{
     position:absolute;
-    bottom:0; left:0; width:100%; height:50%;
-    padding:10px 20px 40px; /* 底部留白 */
+    bottom:0; left:0; width:100%; 
+    height:45%; /* 严格限制高度 */
+    padding:10px;
     box-sizing:border-box;
     display:flex; justify-content:center; align-items:center;
     z-index:30;
@@ -92,6 +93,7 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
 
 .photo-grid{
     display:grid;
+    /* 保持4列2行 */
     grid-template-columns:repeat(4,1fr);
     grid-template-rows:repeat(2,1fr);
     gap:10px;
@@ -101,53 +103,49 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
 
 .photo-frame{position:relative;width:100%;height:100%;background:#fff;padding:4px;border:3px solid #c5a000;box-shadow:0 5px 15px rgba(0,0,0,.8);border-radius:4px;overflow:hidden;transform:scale(0);opacity:0}
 .photo-frame img{width:100%;height:100%;object-fit:cover;display:block}
-.photo-frame.show{animation:photoEntrance 1.2s cubic-bezier(.19,1,.22,1) forwards}
+.photo-frame.show{animation:photoEntrance 1.5s cubic-bezier(.19,1,.22,1) forwards}
 @keyframes photoEntrance{0%{opacity:0;transform:scale(0);z-index:10}50%{opacity:1;transform:scale(1.1);z-index:100}100%{opacity:1;transform:scale(1);z-index:1}}
 
-/* 区域2：文字 (中部 30%-50%) */
+/* 区域2：文字 (中部，Top 40%) */
 .final-text-block{
     position:absolute;
-    top: 40%; /* 垂直居中偏上 */
+    top: 40%; /* 位于屏幕 40% 处，给上面留位置 */
     left:50%; transform:translate(-50%,-50%);
     text-align:center; z-index:99999;
     opacity:0; width:95%;
     text-shadow:0 0 20px rgba(0,0,0,.9),3px 3px 0 #000;
 }
-.final-text-block.show{animation:textPop 1s cubic-bezier(.34,1.56,.64,1) forwards}
+.final-text-block.show{animation:textPop 1.2s cubic-bezier(.34,1.56,.64,1) forwards}
 @keyframes textPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 .main-title{font-size:48px;color:#ffd700;margin-bottom:15px;font-weight:900;letter-spacing:2px;line-height:1.2}
 .sub-title{font-size:24px;color:#fff;letter-spacing:2px;font-weight:bold}
 
-/* 区域1：弹幕 (顶部 0%-30%) */
+/* 区域1：弹幕 (在JS里控制高度) */
 .bubble{position:absolute;padding:6px 12px;background:hsl(var(--h),70%,95%,.9);border-radius:20px;font-size:13px;color:#333;box-shadow:0 2px 5px rgba(0,0,0,.2);opacity:0;white-space:nowrap;font-weight:bold;pointer-events:none}
 .bubble.left-in{animation:flyRight 2s cubic-bezier(.34,1.56,.64,1) forwards}
 .bubble.right-in{animation:flyLeft 2s cubic-bezier(.34,1.56,.64,1) forwards}
 @keyframes flyRight{0%{opacity:0;transform:translateX(-30px) scale(.5)}20%{opacity:1}100%{opacity:1;transform:translateX(10px) scale(1)}}
 @keyframes flyLeft{0%{opacity:0;transform:translateX(30px) scale(.5)}20%{opacity:1}100%{opacity:1;transform:translateX(-10px) scale(1)}}
 
-/* === 核心适配：解决手机端显示问题 === */
+/* === 移动端特别适配 === */
 @media (max-width:768px){
-    .glass-box{width:90%; padding:30px 20px;}
-    
-    /* 1. 蛋糕适配：强力缩小 */
-    .cake-stage{
-        transform: translate(-50%,-50%) scale(0.6); 
-        width: 100%;
-    }
-    .cake-stage h1{ font-size: 40px; margin-bottom: 80px; }
-    .cake-text{ margin-top: 40px; }
+    /* 蛋糕缩小 */
+    .cake-stage{transform:translate(-50%,-50%) scale(0.6); width:100%}
+    .cake-stage h1{font-size:42px; margin-bottom:90px}
+    .cake-text{margin-top:50px}
 
-    /* 2. 照片墙：保持 4列2行，紧凑排列 */
-    .photo-grid{ gap: 4px; }
-    .photo-frame{ border-width: 1.5px; padding: 1.5px; }
-    
-    /* 3. 文字：上移，字体调小 */
-    .final-text-block{ top: 35%; } 
+    /* 首页 */
+    .glass-box{width:90%; padding:30px 20px;}
+
+    /* 结尾布局重置 */
+    .final-text-block{ top: 42%; } /* 文字稍微下移一点点 */
     .main-title{font-size:36px}
     .sub-title{font-size:18px}
     
-    /* 4. 照片区域：确保占下半部分 */
-    #photo-wall{ height:45%; padding-bottom:30px; bottom: 0;}
+    /* 照片墙：绝对底部，不占上面空间 */
+    #photo-wall{ height:40%; bottom: 20px; padding: 0 10px; }
+    .photo-grid{ gap: 5px; } /* 间距紧凑 */
+    .photo-frame{ border-width: 2px; padding: 2px; }
 }
 </style>
 </head>
@@ -278,23 +276,24 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
             const danmakuContainer = get('danmaku-container');
             const frames = document.querySelectorAll('.photo-frame');
             
-            // 祝福语：严格限制在顶部 0-25% 区域
+            // 弹幕位置控制：严格在顶部 0-35%
             wishes.forEach((text, i) => {
                 const bubble = document.createElement('div'); bubble.className = 'bubble'; bubble.innerText = text;
                 const hue = Math.floor(Math.random() * 360); bubble.style.setProperty('--h', hue);
                 
-                const top = Math.random() * 25; // 只在顶部
+                // 强制只在屏幕上方 0-35% 的高度生成
+                const top = Math.random() * 35; 
                 const left = Math.random() * 90 + 5;
 
                 bubble.style.top = top + '%';
                 bubble.style.left = left + '%';
                 bubble.classList.add(Math.random() > 0.5 ? 'left-in' : 'right-in');
                 
-                // 慢慢出现：1.5秒一个
+                // 慢节奏：1.5秒一个
                 setTimeout(() => { danmakuContainer.appendChild(bubble); }, i * 1500 + 1000);
             });
 
-            // 照片：慢慢出现 1.5秒一张
+            // 照片节奏：1.5秒一张
             frames.forEach((frame, i) => { setTimeout(() => { frame.classList.add('show'); }, i * 1500 + 1000); });
 
             setTimeout(() => { 
