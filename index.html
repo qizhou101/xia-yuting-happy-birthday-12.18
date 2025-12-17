@@ -256,14 +256,25 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
         }, false);
 
 
-        function verify(){ 
-            if(get('password').value==='1218'){ 
-                get('stage1').style.opacity=0; 
-                bgmRain.pause(); // 停雨声
-                
-                setTimeout(()=>{ get('stage1').style.display='none'; startCountdown(); },800); 
-            } else { alert('口令错误 (生日:1218)'); get('password').value=''; } 
-        }
+function verify(){ 
+    if(get('password').value==='1218'){ 
+        get('stage1').style.opacity=0; 
+
+        /* === 新增：彻底干掉雨声 === */
+        bgmRain.pause();
+        bgmRain.currentTime = 0;
+        bgmRain.remove();          // 把节点从 DOM 摘掉
+        rains = [];                // 清空雨滴数组，画面瞬间干净
+
+        setTimeout(()=>{ 
+            get('stage1').style.display='none'; 
+            startCountdown(); 
+        },800); 
+    } else { 
+        alert('口令错误 (生日:1218)'); 
+        get('password').value=''; 
+    } 
+}
 
         function startCountdown(){ 
             const el=get('countdown'); let num=3; el.classList.add('show'); el.innerText=num; setTimeout(()=>el.classList.remove('beat'),200); 
