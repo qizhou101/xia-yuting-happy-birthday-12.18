@@ -29,7 +29,8 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1}
 .glass-box p{animation-delay:.2s;margin-bottom:25px;font-size:18px;color:rgba(255,255,255,.9)}
 .input-wrapper{animation-delay:.3s;width:100%;margin-bottom:25px}
 .glass-box .btn{animation-delay:.4s}
-input{width:100%;background:rgba(255,255,255,.15);border:none;border-bottom:2px solid rgba(255,255,255,.5);color:#fff;font-size:28px;text-align:center;padding:12px;outline:0;border-radius:8px;transition:.3s}
+/* 输入框：添加了更高的层级确保点击 */
+input{width:100%;background:rgba(255,255,255,.15);border:none;border-bottom:2px solid rgba(255,255,255,.5);color:#fff;font-size:28px;text-align:center;padding:12px;outline:0;border-radius:8px;transition:.3s; pointer-events: auto;}
 input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
 .btn{padding:15px 60px;border-radius:50px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.2);color:#fff;cursor:pointer;font-size:20px;letter-spacing:4px;box-shadow:0 4px 15px rgba(0,0,0,.2);transition:all .2s}
 .btn:hover{background:rgba(255,255,255,.35);transform:scale(1.05)}
@@ -39,7 +40,7 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
 .countdown.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .countdown.beat{transform:translate(-50%,-50%) scale(1.2)}
 
-/* 蛋糕舞台 */
+/* 蛋糕舞台 (保持适配) */
 .cake-stage{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%) scale(1.25);opacity:0;display:none;transition:opacity 1.2s;width:100%;flex-direction:column;align-items:center;justify-content:center;z-index:50}
 .cake-stage.show{opacity:1;display:flex}
 .cake-stage h1{color:#fff;margin-bottom:130px;font-weight:900;letter-spacing:6px;font-size:60px;text-shadow:0 0 30px rgba(255,255,255,.6);white-space:nowrap}
@@ -142,9 +143,9 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
 </style>
 </head>
 <body>
-    <audio id="bgmRain" src="雨的声音.mp3" preload="auto" loop></audio>
-    <audio id="bgmBirthday" src="生日快乐.mp3" preload="auto"></audio>
-    <audio id="bgmFlower" src="一路生花.mp3" preload="auto" loop></audio>
+    <audio id="bgmRain" src="雨的声音.mp3" preload="auto" loop playsinline webkit-playsinline></audio>
+    <audio id="bgmBirthday" src="生日快乐.mp3" preload="auto" playsinline webkit-playsinline></audio>
+    <audio id="bgmFlower" src="一路生花.mp3" preload="auto" loop playsinline webkit-playsinline></audio>
 
     <div class="ambient-light"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
     
@@ -155,7 +156,9 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
         <div id="stage1" class="glass-box interactive">
             <h2>致：夏雨婷</h2>
             <p>请输入开启口令 (1218)</p>
-            <div class="input-wrapper"><input type="password" id="password" maxlength="4"></div>
+            <div class="input-wrapper">
+                <input type="password" id="password" maxlength="4" onfocus="forcePlayRain()" onclick="forcePlayRain()">
+            </div>
             <button class="btn" onclick="verify()">开启惊喜</button>
         </div>
         
@@ -206,34 +209,58 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
         const bgmBirthday=get('bgmBirthday');
         const bgmFlower=get('bgmFlower');
 
-        function safePlay(audio) { if(audio) { audio.play().catch(e => console.log("Play failed:", e)); } }
-        function safePause(audio) { if(audio) { audio.pause(); } }
-
-        // === 核心修复：多重事件监听，确保触摸必有声 ===
-        function enableSound() {
-            // A. 尝试播放雨声 (如果还没播)
-            if (bgmRain.paused && get('stage1').style.display !== 'none') { 
-                safePlay(bgmRain); 
-            }
-            // B. 预加载其他音频 (静音播放0.1秒)
-            if(bgmBirthday.paused) { bgmBirthday.play().then(() => { if(get('stage1').style.display !== 'none') bgmBirthday.pause(); }).catch(()=>{}); }
-            if(bgmFlower.paused) { bgmFlower.play().then(() => { if(get('stage1').style.display !== 'none') bgmFlower.pause(); }).catch(()=>{}); }
+        // 强力播放函数
+        function forcePlay(audio) {
+            // 手机浏览器核心hack：必须在用户交互的 stack 里直接调用 play
+            audio.play().catch(e => {
+                console.log("Auto-play prevented, waiting for next touch");
+            });
         }
 
-        // 绑定到所有可能的交互事件
-        document.body.addEventListener('click', enableSound);
-        document.body.addEventListener('touchstart', enableSound, { passive: true }); // 手机端关键
-        document.getElementById('password').addEventListener('focus', enableSound); // 输入框关键
+        // === 核心：暴力绑定所有可能的点击 ===
+        // 只要用户点了屏幕（不管是哪里），就强制播放雨声
+        // 并且顺便把后面两首歌“预热”一下（静音播放0秒），骗过浏览器权限
+        function unlockAudioSystem() {
+            if (bgmRain.paused && get('stage1').style.display !== 'none') {
+                forcePlay(bgmRain);
+            }
+            // 预加载其他音频（静音瞬间播放）
+            if (bgmBirthday.paused) {
+                bgmBirthday.muted = true;
+                bgmBirthday.play().then(() => {
+                    bgmBirthday.pause();
+                    bgmBirthday.muted = false; // 恢复音量准备后面用
+                }).catch(()=>{});
+            }
+            if (bgmFlower.paused) {
+                bgmFlower.muted = true;
+                bgmFlower.play().then(() => {
+                    bgmFlower.pause();
+                    bgmFlower.muted = false;
+                }).catch(()=>{});
+            }
+        }
+
+        // 绑定给 HTML 上的输入框事件
+        window.forcePlayRain = function() {
+            unlockAudioSystem();
+        }
+
+        // 绑定给全局触摸和点击
+        document.body.addEventListener('touchstart', unlockAudioSystem, { passive: true });
+        document.body.addEventListener('click', unlockAudioSystem);
+
+        // 微信浏览器专用补丁
+        document.addEventListener("WeixinJSBridgeReady", function () {
+            unlockAudioSystem();
+        }, false);
+
 
         function verify(){ 
             if(get('password').value==='1218'){ 
                 get('stage1').style.opacity=0; 
-                safePause(bgmRain);
+                bgmRain.pause(); // 停雨声
                 
-                // 确保生日歌已准备好
-                bgmBirthday.muted=true; safePlay(bgmBirthday);
-                setTimeout(() => { bgmBirthday.pause(); bgmBirthday.muted=false; }, 50);
-
                 setTimeout(()=>{ get('stage1').style.display='none'; startCountdown(); },800); 
             } else { alert('口令错误 (生日:1218)'); get('password').value=''; } 
         }
@@ -244,7 +271,9 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
         }
         
         function showCake(){ 
-            bgmBirthday.currentTime=0; bgmBirthday.muted=false; safePlay(bgmBirthday);
+            bgmBirthday.currentTime=0; 
+            bgmBirthday.play().catch(()=>{}); // 此时应该已经有权限了
+            
             get('stage3').classList.add('show'); 
             setTimeout(()=>{ 
                 get('cakeHint').innerText='呼~ (愿望已许下)'; 
@@ -255,9 +284,10 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
                     setTimeout(()=>{
                         get('stage3').style.opacity=0; 
                         setTimeout(()=>{ 
-                            safePause(bgmBirthday);
-                            try { bgmFlower.currentTime=0; } catch(e){}
-                            safePlay(bgmFlower);
+                            bgmBirthday.pause();
+                            bgmFlower.currentTime=0; 
+                            bgmFlower.play().catch(()=>{});
+                            
                             get('stage3').style.display='none'; 
                             showFinalStage(); 
                         }, 1000);
