@@ -21,7 +21,7 @@ body,html{width:100%;height:100%;overflow:hidden;font-family:'ZCOOL XiaoWei',ser
 canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1}
 .container{position:absolute;width:100%;height:100%;z-index:10;pointer-events:none}
 
-/* 首页 (浅色通透) */
+/* 首页 */
 @keyframes bouncyPop{0%{opacity:0;transform:scale(.3) translateY(20px)}50%{opacity:.8;transform:scale(1.1) translateY(-10px)}70%{transform:scale(.95) translateY(5px)}100%{opacity:1;transform:scale(1) translateY(0)}}
 .glass-box{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);box-shadow:0 20px 50px rgba(0,0,0,0.3),inset 0 0 20px rgba(255,255,255,.05);padding:40px 30px;border-radius:20px;width:85%;max-width:420px;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(10px);pointer-events:auto}
 .glass-box h2,.glass-box p,.glass-box .input-wrapper,.glass-box .btn{opacity:0;animation:bouncyPop .8s cubic-bezier(.68,-.55,.265,1.55) forwards}
@@ -75,33 +75,69 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
 @keyframes flicker{0%{transform:translateX(-50%) scale(1) rotate(-2deg);opacity:1}100%{transform:translateX(-50%) scale(1.1) rotate(2deg);opacity:.9}}
 .pos-l1{bottom:85px;z-index:20}.pos-l2{bottom:165px;z-index:20}.pos-l3{bottom:235px;z-index:20}.pos-l4{bottom:295px;z-index:20}.pos-l5{bottom:350px;z-index:20;height:60px}
 
-/* 结尾布局 */
+/* === 结尾布局核心修改 (适配手机) === */
 #final-stage-container{position:absolute;top:0;left:0;width:100%;height:100%;display:none;pointer-events:none;z-index:50}
 #final-stage-container.show{display:block}
 #danmaku-container{position:absolute;top:0;left:0;width:100%;height:100%;z-index:20;overflow:hidden;pointer-events:none}
-#photo-wall{position:absolute;bottom:0;left:0;width:100%;height:50%;padding:10px 20px 50px;box-sizing:border-box;display:flex;justify-content:center;align-items:flex-end;z-index:30}
-.photo-grid{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);gap:10px;width:100%;max-width:700px}
-.photo-frame{position:relative;aspect-ratio:3/4;background:#fff;padding:6px;border:4px solid #c5a000;box-shadow:0 10px 25px rgba(0,0,0,.8),inset 0 0 10px rgba(0,0,0,.2);border-radius:4px;overflow:hidden;transform:scale(0);opacity:0}
-.photo-frame img{width:100%;height:100%;object-fit:cover;filter:brightness(.95) contrast(1.1);display:block}
+
+/* 照片墙：固定在底部 50% 区域 */
+#photo-wall{
+    position:absolute;
+    bottom:0; left:0; width:100%; height:50%; /* 下半部分 */
+    padding:10px 10px 30px;
+    box-sizing:border-box;
+    display:flex; justify-content:center; align-items:center;
+    z-index:30;
+}
+
+.photo-grid{
+    display:grid;
+    /* 默认电脑端：4列2行 */
+    grid-template-columns:repeat(4,1fr);
+    grid-template-rows:repeat(2,1fr);
+    gap:10px;
+    width:100%; max-width:800px;
+    height: 100%;
+}
+
+.photo-frame{position:relative;width:100%;height:100%;background:#fff;padding:4px;border:3px solid #c5a000;box-shadow:0 5px 15px rgba(0,0,0,.8);border-radius:4px;overflow:hidden;transform:scale(0);opacity:0}
+.photo-frame img{width:100%;height:100%;object-fit:cover;display:block}
 .photo-frame.show{animation:photoEntrance 1.2s cubic-bezier(.19,1,.22,1) forwards}
-@keyframes photoEntrance{0%{opacity:0;transform:scale(0);z-index:10}50%{opacity:1;transform:scale(1.5);z-index:100;box-shadow:0 20px 50px rgba(0,0,0,.9)}100%{opacity:1;transform:scale(1);z-index:1}}
-.bubble{position:absolute;padding:6px 14px;background:hsl(var(--h),70%,92%,.9);border-radius:30px;font-size:14px;color:#333;box-shadow:0 2px 10px rgba(0,0,0,.3);opacity:0;white-space:nowrap;font-weight:bold}
+@keyframes photoEntrance{0%{opacity:0;transform:scale(0);z-index:10}50%{opacity:1;transform:scale(1.1);z-index:100}100%{opacity:1;transform:scale(1);z-index:1}}
+
+/* 弹幕样式 */
+.bubble{position:absolute;padding:6px 12px;background:hsl(var(--h),70%,95%,.9);border-radius:20px;font-size:13px;color:#333;box-shadow:0 2px 5px rgba(0,0,0,.2);opacity:0;white-space:nowrap;font-weight:bold;pointer-events:none}
 .bubble.left-in{animation:flyRight 1.5s cubic-bezier(.34,1.56,.64,1) forwards}
 .bubble.right-in{animation:flyLeft 1.5s cubic-bezier(.34,1.56,.64,1) forwards}
-@keyframes flyRight{0%{opacity:0;transform:translateX(-50px) scale(.5)}20%{opacity:1}100%{opacity:1;transform:translateX(20px) scale(1)}}
-@keyframes flyLeft{0%{opacity:0;transform:translateX(50px) scale(.5)}20%{opacity:1}100%{opacity:1;transform:translateX(-20px) scale(1)}}
-.final-text-block{position:absolute;top:35%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:99999;opacity:0;pointer-events:none;width:100%;text-shadow:0 0 20px rgba(0,0,0,.9),0 0 40px rgba(0,0,0,.7),3px 3px 0 #000,-3px -3px 0 #000}
+@keyframes flyRight{0%{opacity:0;transform:translateX(-30px) scale(.5)}20%{opacity:1}100%{opacity:1;transform:translateX(10px) scale(1)}}
+@keyframes flyLeft{0%{opacity:0;transform:translateX(30px) scale(.5)}20%{opacity:1}100%{opacity:1;transform:translateX(-10px) scale(1)}}
+
+/* 文字块：位于中间偏上 (避开照片和弹幕区) */
+.final-text-block{
+    position:absolute;
+    top: 30%; /* 位于上部 30% 处 */
+    left:50%; transform:translate(-50%,-50%);
+    text-align:center; z-index:99999;
+    opacity:0; width:90%;
+    text-shadow:0 0 20px rgba(0,0,0,.9),3px 3px 0 #000;
+}
 .final-text-block.show{animation:textPop 1s cubic-bezier(.34,1.56,.64,1) forwards}
 @keyframes textPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
-.main-title{font-size:72px;color:#ffd700;margin-bottom:20px;font-weight:900;letter-spacing:4px}
-.sub-title{font-size:36px;color:#fff;letter-spacing:2px;font-weight:bold}
+.main-title{font-size:42px;color:#ffd700;margin-bottom:15px;font-weight:900;letter-spacing:2px;line-height:1.2}
+.sub-title{font-size:22px;color:#fff;letter-spacing:2px;font-weight:bold}
 
+/* 移动端适配 */
 @media (max-width:768px){
-    .photo-grid{grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(4,1fr);gap:8px}
-    .main-title{font-size:48px}.sub-title{font-size:24px}
-    .cake-stage{transform:translate(-50%,-50%) scale(.9)}
-    .cake-3d{margin-bottom:20px}.cake-stage h1{font-size:26px}
-    #photo-wall{height:55%;padding-bottom:40px}.final-text-block{top:30%}
+    /* 手机端保持 4列2行，只是整体变小，确保不占满屏幕 */
+    .photo-grid{
+        gap: 5px;
+    }
+    .photo-frame{ border-width: 2px; padding: 2px; }
+    
+    .final-text-block{ top: 25%; } /* 文字稍微再上去一点 */
+    .main-title{font-size:36px}
+    .sub-title{font-size:18px}
+    
     .glass-box{width:90%}
 }
 </style>
@@ -233,22 +269,31 @@ input:focus{background:rgba(255,255,255,.25);border-color:#ffd700}
             const danmakuContainer = get('danmaku-container');
             const frames = document.querySelectorAll('.photo-frame');
             
-            // 关键修改：每隔 1.2 秒出现一个祝福语
+            // 祝福语逻辑：主要出现在顶部区域和左右两侧，避开中间文字
             wishes.forEach((text, i) => {
                 const bubble = document.createElement('div'); bubble.className = 'bubble'; bubble.innerText = text;
                 const hue = Math.floor(Math.random() * 360); bubble.style.setProperty('--h', hue);
-                const zone = Math.floor(Math.random() * 3); let left, top;
-                if (zone === 0) { left = Math.random() * 90 + 5; top = Math.random() * 25 + 2; } 
-                else if (zone === 1) { left = Math.random() * 20 + 2; top = Math.random() * 60 + 30; } 
-                else { left = Math.random() * 20 + 78; top = Math.random() * 60 + 30; }
-                bubble.style.left = left + '%'; bubble.style.top = top + '%';
+                
+                // 智能分区：70% 顶部，30% 中间两侧
+                const rand = Math.random();
+                let top, left;
+                if(rand < 0.7) { // 顶部区域 (0-20%)
+                    top = Math.random() * 20; 
+                    left = Math.random() * 90 + 5;
+                } else { // 文字两侧 (20-40% 高度)
+                    top = Math.random() * 20 + 20;
+                    // 左侧 0-10% 或 右侧 90-100%
+                    left = (Math.random() > 0.5) ? Math.random() * 10 : Math.random() * 10 + 90;
+                }
+
+                bubble.style.top = top + '%';
+                bubble.style.left = left + '%';
                 bubble.classList.add(Math.random() > 0.5 ? 'left-in' : 'right-in');
                 
-                // 1000ms = 1秒，加上初始 1秒等待
+                // 1.2秒一个，慢慢来
                 setTimeout(() => { danmakuContainer.appendChild(bubble); }, i * 1200 + 1000);
             });
 
-            // 照片节奏：每隔 0.8 秒出现一张
             frames.forEach((frame, i) => { setTimeout(() => { frame.classList.add('show'); }, i * 800 + 1000); });
 
             setTimeout(() => { 
